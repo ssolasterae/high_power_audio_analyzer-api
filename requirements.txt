@@ -88,7 +88,7 @@ mypy-extensions==1.0.0
 narwhals==2.5.0
 networkx==3.4.2
 numba==0.61.2
-numpy==2.3.3
+numpy==1.21.6
 oauthlib==3.2.2
 ollama==0.4.7
 onnxruntime==1.21.0
@@ -149,7 +149,7 @@ sympy==1.14.0
 tenacity==9.1.2
 threadpoolctl==3.6.0
 tokenizers==0.21.1
-torch==2.8.0
+torch==2.0.0
 torchaudio==2.2.2
 torchvision==0.17.2
 tqdm==4.67.1
