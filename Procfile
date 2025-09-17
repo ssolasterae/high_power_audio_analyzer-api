@@ -1,1 +1,1 @@
-web: python analyze_audio_v2.py
+web: gunicorn analyze_audio_v2:app
