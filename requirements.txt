@@ -88,7 +88,7 @@ mypy-extensions==1.0.0
 narwhals==2.5.0
 networkx==3.4.2
 numba==0.61.2
-numpy>=1.22.5,<2.0
+numpy==1.26.4
 oauthlib==3.2.2
 ollama==0.4.7
 onnxruntime==1.21.0
@@ -136,7 +136,7 @@ requests-toolbelt==1.0.0
 rich==14.0.0
 rsa==4.9
 scikit-learn==1.7.2
-scipy>=1.7.0
+scipy==1.16.2
 shellingham==1.5.4
 simplejson==3.20.1
 six==1.17.0
