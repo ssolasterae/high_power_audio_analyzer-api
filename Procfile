@@ -1,1 +1,1 @@
-web: gunicorn analyze_audio_v2:app
+web: gunicorn --timeout 120 analyze_audio_v2:app
