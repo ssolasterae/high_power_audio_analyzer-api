@@ -2,56 +2,56 @@ from flask import Flask, request, jsonify
 import librosa
 import numpy as np
 import tempfile
+import os
 
 app = Flask(__name__)
 
 @app.route('/analyze_audio', methods=['POST'])
 def analyze_audio():
-    # --- Handle file key from GPT ---
-    if 'audio' in request.files:
-        audio_file = request.files['audio']
-    elif 'file' in request.files:  # GPT often sends as "file"
-        audio_file = request.files['file']
-    else:
+    if 'audio' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
 
-    # --- Save to temporary file so librosa can load it ---
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        audio_file.save(tmp.name)
-        try:
-            y, sr = librosa.load(tmp.name, sr=None)
-        except Exception as e:
-            return jsonify({"error": f"Could not process file: {str(e)}"}), 500
+    file = request.files['audio']
+    if file.filename == '':
+        return jsonify({"error": "Empty filename"}), 400
 
-    # --- Extract audio features ---
+    # Save the file temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        filepath = tmp.name
+        file.save(filepath)
+
     try:
-        tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-        rmse = np.mean(librosa.feature.rms(y=y))
-        zcr = np.mean(librosa.feature.zero_crossing_rate(y=y))
-        spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
-        spectral_bandwidth = np.mean(librosa.feature.spectral_bandwidth(y=y, sr=sr))
-        spectral_rolloff = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr))
-        spectral_flatness = np.mean(librosa.feature.spectral_flatness(y=y))
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=20)
-        mfcc_means = {f"mfcc_{i+1}_mean": float(np.mean(mfccs[i])) for i in range(20)}
+        # Load audio
+        y, sr = librosa.load(filepath, sr=None, mono=True)
 
-        features = {
-            "duration": float(librosa.get_duration(y=y, sr=sr)),
+        # Extract features
+        tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr).mean()
+        spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr).mean()
+        rms = librosa.feature.rms(y=y).mean()
+        zcr = librosa.feature.zero_crossing_rate(y).mean()
+        spectral_bandwidth = librosa.feature.spectral_bandwidth(y=y, sr=sr).mean()
+        spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr).mean()
+        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=20)
+        mfcc_means = mfccs.mean(axis=1).tolist()
+
+        return jsonify({
             "tempo": float(tempo),
-            "rmse_mean": float(rmse),
-            "zero_crossing_rate_mean": float(zcr),
+            "chroma_mean": float(chroma),
             "spectral_centroid_mean": float(spectral_centroid),
+            "rms_mean": float(rms),
+            "zcr_mean": float(zcr),
             "spectral_bandwidth_mean": float(spectral_bandwidth),
             "spectral_rolloff_mean": float(spectral_rolloff),
-            "spectral_flatness_mean": float(spectral_flatness),
-        }
-        features.update(mfcc_means)
-
-        return jsonify(features)
+            **{f"mfcc_{i+1}_mean": float(val) for i, val in enumerate(mfcc_means)}
+        })
 
     except Exception as e:
-        return jsonify({"error": f"Feature extraction failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
+    finally:
+        # Cleanup temp file
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=10000)
